@@ -13,12 +13,7 @@ however, the original source of the data seems to be the Institut fuer Algorithm
 und Kognitive Systeme at Universitaet Karlsruhe.
 """
 
-import os
-
-import numpy as np
 import six.moves.cPickle as pickle
-import torch
-import torch.nn as nn
 import torch.utils.data as data
 
 class PolyphonicDataset(data.Dataset):

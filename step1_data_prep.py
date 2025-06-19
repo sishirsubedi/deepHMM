@@ -1,7 +1,9 @@
 """
 
 
-Data are taken from
+Data and code are taken from
+
+https://github.com/guxd/deepHMM?tab=readme-ov-file
 
 Boulanger-Lewandowski, N., Bengio, Y. and Vincent, P.,
 "Modeling Temporal Dependencies in High-Dimensional Sequences: Application to

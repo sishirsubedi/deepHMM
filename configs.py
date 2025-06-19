@@ -1,3 +1,22 @@
+def config_HMM():
+    conf = {
+        # Model Arguments
+        'input_dim': 88,  # Dimension of the observed data (e.g., number of features in x_t)
+        'z_dim': 10,      # Number of discrete latent states (replaces the continuous z_dim in DMM)
+
+        # Training Arguments
+        'batch_size': 20,      # Number of sequences per batch
+        'epochs': 100,          # Maximum number of epochs
+        'min_epochs': 2,       # Minimum number of epochs to train
+        'lr': 3e-4,            # Learning rate for Adam optimizer
+        'beta1': 0.96,         # Beta1 for Adam
+        'beta2': 0.999,        # Beta2 for Adam
+        'clip_norm': 20.0,     # Gradient clipping, max norm
+        'anneal_epochs': 1000, # Number of epochs for KL annealing
+        'min_anneal': 0.1,     # Minimum KL annealing weight
+    }
+    return conf
+ 
 def config_DHMM():
     conf = {
 
@@ -13,7 +32,7 @@ def config_DHMM():
 
 # Training Arguments
     'batch_size':20,
-    'epochs':5000, # maximum number of epochs
+    'epochs':100, # maximum number of epochs
     'min_epochs':2, # minimum number of epochs to train for
 
     'lr':3e-4, # autoencoder learning rate
