@@ -18,17 +18,16 @@ import configs
 from models.data_loader import PolyphonicDataset
 import models, configs
 from models.helper import gVar
+import pandas as pd 
 
-def save_model(model, epoch):
-    ckpt_path='output/model_epo{}.pkl'.format('DHMM', epoch)
+
+def save_model(model, epoch,train_loss,test_loss):
+    ckpt_path='output/DHMMmodel_epo{}.pkl'.format(epoch)
     print("saving model to %s..." % ckpt_path)
     torch.save(model.state_dict(), ckpt_path)
-
-# def load_model(model, epoch):
-#     ckpt_path='./output/{}/{}/{}/models/model_epo{}.pkl'.format(args.model, args.expname, args.dataset, epoch)
-#     assert exists(ckpt_path), "epoch misspecified"
-#     print("loading model from %s..." % ckpt_path)
-#     model.load_state_dict(torch.load(ckpt_path))
+    pd.DataFrame({'train_loss': train_loss}).to_csv('output/DHMMmodel_train_loss.csv.gz',compression='gzip')
+    test_loss_values = [t.item() for t in test_loss]
+    pd.DataFrame({'test_loss': test_loss_values}).to_csv('output/DHMMmodel_test_loss.csv.gz',compression='gzip')
 
 
 # setup, training, and evaluation
@@ -50,15 +49,17 @@ def train():
     model = getattr(models, 'DHMM')(config)
     model = model.cuda()
         
-    train_set=PolyphonicDataset('data/polyphonic/train.pkl')
-    valid_set=PolyphonicDataset('data/polyphonic/valid.pkl')
-    test_set=PolyphonicDataset('data/polyphonic/test.pkl')
+    train_set=PolyphonicDataset('data/sim/train.pkl')
+    valid_set=PolyphonicDataset('data/sim/valid.pkl')
+    test_set=PolyphonicDataset('data/sim/test.pkl')
 
     #################
     # TRAINING LOOP #
     #################
     
     times = [time.time()]
+    train_loss = []
+    test_loss = []
     for epoch in range(config['epochs']):
             
         train_loader=torch.utils.data.DataLoader(dataset=train_set, batch_size=config['batch_size'], shuffle=True, num_workers=1)
@@ -68,7 +69,6 @@ def train():
         epoch_nll = 0.0 # accumulator for our estimate of the negative log likelihood (or rather -elbo) for this epoch
         i_batch=1   
         n_slices=0
-        loss_records={}
         while True:            
             try: 
                 x, x_rev, x_lens = next(train_data_iter)                  
@@ -87,21 +87,25 @@ def train():
             i_batch=i_batch+1
             n_slices=n_slices+x_lens.sum().item()
             
-        loss_records.update(loss_AE)   
-        loss_records.update({'epo_nll':epoch_nll/n_slices})
-        times.append(time.time())
-        epoch_time = times[-1] - times[-2]
-        logging.info("[Epoch %04d]\t\t(dt = %.3f sec)"%(epoch, epoch_time))
-        logging.info(loss_records)
+        train_l = epoch_nll/n_slices
+        train_loss.append(train_l)
 
-        # do evaluation on test and validation data and report results
-        if (epoch) % 10 == 0:
+        if epoch % 10 == 0:
+            
+            times.append(time.time())
+            epoch_time = times[-1] - times[-2]
+            logging.info("[Epoch %04d]\t\t(dt = %.3f sec)"%(epoch, epoch_time))
+            logging.info("[train epoch %08d]  %.8f" % (epoch, train_l))
+
+
             test_loader=torch.utils.data.DataLoader(dataset=test_set, batch_size=config['batch_size'], shuffle=False, num_workers=1)
             for x, x_rev, x_lens in test_loader: 
                 x, x_rev, x_lens = gVar(x), gVar(x_rev), gVar(x_lens)
-                test_nll = model.valid(x, x_rev, x_lens) / x_lens.sum()
-            logging.info("[val/test epoch %08d]  %.8f" % (epoch, test_nll))
-    save_model(model, epoch)
+                test_nll = model.valid(x,x_rev, x_lens) / x_lens.sum()
+                test_loss.append(test_nll)
+            logging.info("[test epoch %08d]  %.8f" % (epoch, test_nll))
+                 
+    save_model(model,epoch,train_loss,test_loss)
 
 
 train()

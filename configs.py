@@ -6,7 +6,7 @@ def config_HMM():
 
         # Training Arguments
         'batch_size': 20,      # Number of sequences per batch
-        'epochs': 100,          # Maximum number of epochs
+        'epochs': 1000,          # Maximum number of epochs
         'min_epochs': 2,       # Minimum number of epochs to train
         'lr': 3e-4,            # Learning rate for Adam optimizer
         'beta1': 0.96,         # Beta1 for Adam
@@ -32,7 +32,7 @@ def config_DHMM():
 
 # Training Arguments
     'batch_size':20,
-    'epochs':100, # maximum number of epochs
+    'epochs':500, # maximum number of epochs
     'min_epochs':2, # minimum number of epochs to train for
 
     'lr':3e-4, # autoencoder learning rate

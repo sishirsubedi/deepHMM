@@ -13,7 +13,7 @@ def save_model(model, epoch,train_loss,test_loss):
     ckpt_path='output/HMMmodel_epo{}.pkl'.format(epoch)
     print("saving model to %s..." % ckpt_path)
     torch.save(model.state_dict(), ckpt_path)
-    pd.DataFrame(train_loss).to_csv('output/HMMmodel_train_loss.csv.gz',compression='gzip')
+    pd.DataFrame({'train_loss': train_loss}).to_csv('output/HMMmodel_train_loss.csv.gz',compression='gzip')
     test_loss_values = [t.item() for t in test_loss]
     pd.DataFrame({'test_loss': test_loss_values}).to_csv('output/HMMmodel_test_loss.csv.gz',compression='gzip')
 
@@ -59,7 +59,6 @@ def train():
         epoch_nll = 0.0 # accumulator for our estimate of the negative log likelihood (or rather -elbo) for this epoch
         i_batch=1   
         n_slices=0
-        loss_records={}
         while True:            
             try: 
                 x, x_rev, x_lens = next(train_data_iter)                  
@@ -77,23 +76,25 @@ def train():
             epoch_nll += loss_AE['train_loss']
             i_batch=i_batch+1
             n_slices=n_slices+x_lens.sum().item()
-            train_loss.append(loss_AE)
             
-        loss_records.update(loss_AE)   
-        loss_records.update({'epo_nll':epoch_nll/n_slices})
-        times.append(time.time())
-        epoch_time = times[-1] - times[-2]
-        logging.info("[Epoch %04d]\t\t(dt = %.3f sec)"%(epoch, epoch_time))
-        logging.info(loss_records)
-
         # do evaluation on test and validation data and report results
-        if (epoch) % 10 == 0:
+        train_l = epoch_nll/n_slices
+        train_loss.append(train_l)
+
+        if epoch % 10 == 0:
+            
+            times.append(time.time())
+            epoch_time = times[-1] - times[-2]
+            logging.info("[Epoch %04d]\t\t(dt = %.3f sec)"%(epoch, epoch_time))
+            logging.info("[train epoch %08d]  %.8f" % (epoch, train_l))
+
+
             test_loader=torch.utils.data.DataLoader(dataset=test_set, batch_size=config['batch_size'], shuffle=False, num_workers=1)
             for x, x_rev, x_lens in test_loader: 
                 x, x_rev, x_lens = gVar(x), gVar(x_rev), gVar(x_lens)
                 test_nll = model.valid_step(x, x_lens) / x_lens.sum()
                 test_loss.append(test_nll)
-            logging.info("[val/test epoch %08d]  %.8f" % (epoch, test_nll))
+            logging.info("[test epoch %08d]  %.8f" % (epoch, test_nll))
                  
     save_model(model,epoch,train_loss,test_loss)
 
